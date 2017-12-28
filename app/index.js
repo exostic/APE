@@ -49,8 +49,8 @@ mqttClient.on('connected', () => {
 
 const engine = new Bpmn.Engine({
   name: 'service expression example',
-  source: fs.readFileSync('./resources/croissance.bpmn'),
-//  source: fs.readFileSync('./resources/diagram_3.bpmn'),
+//  source: fs.readFileSync('./resources/croissance.bpmn'),
+  source: fs.readFileSync('./resources/diagram_3.bpmn'),
 //  source: source,
   moddleOptions: {
     camunda: require('camunda-bpmn-moddle/resources/camunda')
@@ -132,18 +132,17 @@ const listener = new EventEmitter();
 //// WAIT //// compose event name with "wait" and user task id, or just "wait" to listen for all waits
       listener.on('wait', (task) => {
 
-        mqttPattern("APE/activity/wait/+type", task);
-
         //const {form, formKey, id, signal, type} = task;
-
-        mqttClient.publish(filled, JSON.stringify({id: task.id, name: task.name}));
-
+        //mqttPattern("APE/activity/wait/+type/output", task);
+        //mqttClient.publish(filled, JSON.stringify({id: task.id, name: task.name}));
         
+        //mqttPattern("APE/activity/wait/+type/input", task);
+        //mqttClient.subscribe(filled);
 
+/// rajouter bloc : on.message, si message.id = published message.id --> unsubscribe(filled)
+        console.log(`${task.type} <${task.id}> is waiting for signal`);
 
-        console.log(`${type} <${id}> is waiting for signal`);
-
-        switch (id) {
+        switch (task.id) {
           
           case 'Task1' :
             return signal({name: 'kebab-case-draft'});
@@ -159,7 +158,8 @@ const listener = new EventEmitter();
             break;
 
           default :
-           // return signal();
+//            return task.signal({jobResult: 'Done'});
+            //return task.signal({});
         
         }
 

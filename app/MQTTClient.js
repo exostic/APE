@@ -18,85 +18,76 @@ let mqttPatternExtract = function(topic) {
     return params;
 }
 
+var requestQueue = {};
+
 class MQTTClient extends EventEmitter {
 
     constructor() {
+
       super();
-      client.on('connect', () => {
+      console.log('Connect');
+
+      this.client = mqtt.connect(conf.MQTTClient.url, conf.MQTTClient.options);
+
+      this.client.on('connect', () => {
           this.emit('connected');
           console.log(`Connected to MQTT broker @ ${conf.MQTTClient.options.host}:${conf.MQTTClient.options.port}`);
-          client.subscribe(outTopic);
+          this.client.subscribe(outTopic);
       });
 
-      client.on('message', (topic, message) => {
-          this.emit('message_received');
+      this.client.on('message', (topic, message) => {
+          this.emit('message', topic, message);
+
+          mqttPatternExtract(topic);
+          console.log('params', params);
+
           const obj = message.toString(); 
-          console.log(obj);
+          console.log('obj', obj);
 
-          switch (message.content) {
+          if(requestQueue[JSON.parse(message.toString()).Id]){
+            requestQueue[JSON.parse(message.toString()).Id]();
+          }
 
-              case 'deviceState':
-                  console.log('deviceState')
+          switch (params.module) {
+
+              case 'Activity':
+                  console.log('Activity', message.toString())
+                  break;
+              
+              case 'Engine':
+                  console.log('Engine')
+                  break;
+
+              case 'Service':
+                  console.log('Service', message.toString())
                   break;
 
               default:
-                  // console.log('unknown message :', message);
+                   console.log('unknown MQTT message :', message.toString());
           };
       });
+
+      this.subscribe(inTopic);
      
     }
 
     publish(topic, message, callback) {
-
-        client.publish(topic, message, callback);
-    }
-
-    subscribe(topic, callback) {
-
-        client.subscribe(topic, callback);
-    }
-
-//client.on(message, )
-    receive(topic, callback) {
-
-        client.subscribe(topic);
-        console.log('MQTT receiver');
-
-        client.on('message', (err, topic, message) => {
-            
-            if (err) return callback(err);
-
-            mqttPatternExtract(topic);
-            console.log('unknown MQTT message :', message.toString());
-        
-            switch (params.module) {
-
-                case 'Activity':
-                    console.log('Activity', message.toString())
-                    break;
-                
-                case 'Engine':
-                    console.log('Engine')
-                    break;
-
-                case 'Service':
-                    console.log('Service', message.toString())
-                    break;
-
-                default:
-                     console.log('unknown MQTT message :', message.toString());
-            };
-
-            this.emit('message_received');
-            client.unsubscribe(topic);
-            return callback(null, {
-              data: message.toString(),
-              rawData: message
-            });
-
-        });
+      console.log('publish', topic);
+      if(typeof callback === 'function') {
+        message.Id = parseInt(Math.random()*100000000,10);
+        requestQueue[message.Id] = callback.bind(this,message);
+        this.client.publish(topic, JSON.stringify(message));    
+      }
+      else {
+        this.client.publish(topic, message); 
+      }
 
     }
+
+    subscribe(topic) {
+        this.client.subscribe(topic);
+    }
+
 }
 
     //mqtt.publish(topic, message, {

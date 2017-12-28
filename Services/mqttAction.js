@@ -9,7 +9,7 @@ module.exports.mqttAction = (message, callback) => {
   let {action, topic, payload, delay} = message;
     action = action || 'subscribe';
     topic = topic || 'logs';
-    payload = payload || 'APE_test';
+    payload = payload || {};
     delay = delay || 1;
 
   switch(message.action) {
